@@ -1,4 +1,5 @@
-package com.example.mobileformtest
+package com.example.mobileformtest.ui.screens
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -12,18 +13,24 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.mobileformtest.model.Car
+import com.example.mobileformtest.model.PartCategory
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 
+/**
+ * Car Detail Screen
+ * Shows detailed information about a specific car and its parts
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CarDetailPage(
+fun CarDetailScreen(
     car: Car,
-    onBackClick: () -> Unit = {}
+    onBackClick: () -> Unit = {},
+    modifier: Modifier = Modifier
 ) {
     var selectedCategory by remember { mutableStateOf<PartCategory?>(null) }
 
@@ -52,7 +59,7 @@ fun CarDetailPage(
         }
     ) { paddingValues ->
         LazyColumn(
-            modifier = Modifier
+            modifier = modifier
                 .fillMaxSize()
                 .padding(paddingValues),
             contentPadding = PaddingValues(16.dp),
@@ -70,8 +77,6 @@ fun CarDetailPage(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
-                        // Placeholder for car image
-                        // In a real app, you'd use AsyncImage or similar
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
@@ -82,7 +87,7 @@ fun CarDetailPage(
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 Text(
-                                    text = "${car.make}",
+                                    text = car.make,
                                     fontSize = 32.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -220,7 +225,7 @@ fun CarDetailPage(
 
             // Parts List
             val filteredParts = if (selectedCategory != null) {
-                car.parts.filter { it.category == selectedCategory }
+                car.parts.filter { it.getCategoryEnum() == selectedCategory }
             } else {
                 car.parts
             }
@@ -279,7 +284,7 @@ fun InfoRow(label: String, value: String) {
 }
 
 @Composable
-fun PartCard(part: CarPart) {
+fun PartCard(part: com.example.mobileformtest.model.CarPart) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
@@ -318,7 +323,7 @@ fun PartCard(part: CarPart) {
                         shape = RoundedCornerShape(12.dp)
                     ) {
                         Text(
-                            text = part.category.name,
+                            text = part.category,
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                             fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.onPrimaryContainer
