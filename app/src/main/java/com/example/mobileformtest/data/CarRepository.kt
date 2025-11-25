@@ -6,7 +6,6 @@ import com.example.mobileformtest.model.CarPart
 import com.example.mobileformtest.model.CarResponse
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.tasks.await
 import kotlinx.serialization.json.Json
 import java.io.IOException
@@ -32,13 +31,11 @@ class CarRepository(
 
     /**
      * Fetch cars from local JSON file
-     * Simulates an API call with delay for realistic loading states
      *
      * @return List of cars
      * @throws IOException if file cannot be read
      */
     suspend fun getCars(): List<Car> {
-        delay(250)
         return try {
             fetchCarsFromFirestore()
         } catch (_: Exception) {
@@ -54,7 +51,6 @@ class CarRepository(
      * @throws IOException if data cannot be loaded
      */
     suspend fun searchCars(query: String): List<Car> {
-        delay(150)
         val allCars = getCars()
 
         return if (query.isBlank()) {
@@ -75,7 +71,6 @@ class CarRepository(
      * @throws IOException if data cannot be loaded
      */
     suspend fun getCarById(carId: Int): Car? {
-        delay(150)
         val allCars = getCars()
         return allCars.find { it.id == carId }
     }
