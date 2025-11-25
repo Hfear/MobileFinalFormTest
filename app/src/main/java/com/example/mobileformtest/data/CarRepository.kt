@@ -1,9 +1,13 @@
 package com.example.mobileformtest.data
 
 import android.content.Context
+import android.util.Log
 import com.example.mobileformtest.model.Car
+import com.example.mobileformtest.model.CarPart
 import com.example.mobileformtest.model.CarResponse
-import kotlinx.coroutines.delay
+import com.google.firebase.firestore.DocumentSnapshot
+import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.tasks.await
 import kotlinx.serialization.json.Json
 import java.io.IOException
 
@@ -12,31 +16,33 @@ import java.io.IOException
  * Handles reading from local JSON file (simulating API calls)
  * Will be easy to swap to real API calls later
  */
-class CarRepository(private val context: Context) {
+class CarRepository(
+    private val context: Context,
+    private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
+) {
 
     private val json = Json {
         ignoreUnknownKeys = true
         isLenient = true
     }
 
+    companion object {
+        private const val CARS_COLLECTION = "cars"
+    }
+
     /**
      * Fetch cars from local JSON file
-     * Simulates an API call with delay for realistic loading states
      *
      * @return List of cars
      * @throws IOException if file cannot be read
      */
     suspend fun getCars(): List<Car> {
-        // Simulate network delay
-        delay(500)
-
-        // Read JSON from assets
-        val jsonString = loadJsonFromAssets("cars_data.json")
-
-        // Parse JSON using kotlinx-serialization
-        val response = json.decodeFromString<CarResponse>(jsonString)
-
-        return response.cars
+        return try {
+            fetchCarsFromFirestore()
+        } catch (e: Exception) {
+            Log.e("GetCars", "Error fetching cars from firestore", e)
+            loadCarsFromAssets()
+        }
     }
 
     /**
@@ -47,8 +53,6 @@ class CarRepository(private val context: Context) {
      * @throws IOException if data cannot be loaded
      */
     suspend fun searchCars(query: String): List<Car> {
-        delay(300)
-
         val allCars = getCars()
 
         return if (query.isBlank()) {
@@ -69,8 +73,6 @@ class CarRepository(private val context: Context) {
      * @throws IOException if data cannot be loaded
      */
     suspend fun getCarById(carId: Int): Car? {
-        delay(200)
-
         val allCars = getCars()
         return allCars.find { it.id == carId }
     }
@@ -88,5 +90,56 @@ class CarRepository(private val context: Context) {
         } catch (e: IOException) {
             throw IOException("Failed to read JSON file: $fileName", e)
         }
+    }
+
+    private fun loadCarsFromAssets(): List<Car> {
+        val jsonString = loadJsonFromAssets("cars_data.json")
+        val response = json.decodeFromString<CarResponse>(jsonString)
+        return response.cars
+    }
+
+    private suspend fun fetchCarsFromFirestore(): List<Car> {
+        val snapshot = firestore.collection(CARS_COLLECTION).get().await()
+        val cars = snapshot.documents.mapNotNull { it.toCar() }
+        if (cars.isEmpty()) throw IOException("No cars found in Firestore")
+        return cars
+    }
+
+    private fun DocumentSnapshot.toCar(): Car? {
+        val id = getLong("id")?.toInt() ?: id.toIntOrNull()
+        val make = getString("make") ?: return null
+        val model = getString("model") ?: return null
+        val year = getLong("year")?.toInt()
+        val imageUrl = getString("imageUrl") ?: return null
+        val parts = (get("parts") as? List<*>)
+            ?.mapNotNull { (it as? Map<*, *>)?.toCarPart() }
+            ?: emptyList()
+
+        if (id == null || year == null) return null
+
+        return Car(
+            id = id,
+            make = make,
+            model = model,
+            year = year,
+            imageUrl = imageUrl,
+            parts = parts
+        )
+    }
+
+    private fun Map<*, *>.toCarPart(): CarPart? {
+        val name = this["name"] as? String ?: return null
+        val category = this["category"] as? String ?: return null
+        val price = when (val value = this["price"]) {
+            is Number -> value.toDouble()
+            is String -> value.toDoubleOrNull()
+            else -> null
+        } ?: return null
+        val inStock = when (val value = this["inStock"]) {
+            is Boolean -> value
+            is String -> value.toBooleanStrictOrNull() ?: false
+            else -> false
+        }
+        return CarPart(name, category, price, inStock)
     }
 }
