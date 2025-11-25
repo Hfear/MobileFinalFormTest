@@ -1,6 +1,7 @@
 package com.example.mobileformtest.data
 
 import android.content.Context
+import android.util.Log
 import com.example.mobileformtest.model.Car
 import com.example.mobileformtest.model.CarPart
 import com.example.mobileformtest.model.CarResponse
@@ -38,7 +39,8 @@ class CarRepository(
     suspend fun getCars(): List<Car> {
         return try {
             fetchCarsFromFirestore()
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Log.e("GetCars", "Error fetching cars from firestore", e)
             loadCarsFromAssets()
         }
     }
