@@ -15,6 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -24,6 +25,14 @@ import com.example.mobileformtest.R
 import com.example.mobileformtest.model.Car
 import com.example.mobileformtest.ui.CarUiState
 import com.example.mobileformtest.ui.CarViewModel
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.graphics.Path
 
 /**
  * Main Home Screen
@@ -41,26 +50,34 @@ fun HomeScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "Car Parts Catalog",
-                        fontWeight = FontWeight.Bold
-                    )
-                },
-                actions = {
-                    IconButton(onClick = { viewModel.refreshData() }) {
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
-                            contentDescription = "Refresh data"
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary
+            Box {
+                // SLANTED STRIPES BEHIND
+                SlantedHeaderBackground(
+                    modifier = Modifier.fillMaxWidth()
                 )
-            )
+
+                TopAppBar(
+                    title = {
+                        Text(
+                            text = "Car Parts Catalog",
+                            fontWeight = FontWeight.Bold
+                        )
+                    },
+                    actions = {
+                        IconButton(onClick = { viewModel.refreshData() }) {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = "Refresh data"
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.Transparent,
+                        titleContentColor = Color.Black,
+                        scrolledContainerColor = Color.Transparent
+                    )
+                )
+            }
         }
     ) { paddingValues ->
         Column(
@@ -112,6 +129,42 @@ fun HomeScreen(
                 }
             }
         }
+    }
+}
+@Composable
+fun SlantedHeaderBackground(
+    modifier: Modifier = Modifier,
+    color1: Color = Color(0xFF6F8FB0),
+    color2: Color = Color(0xFFAED8F6),
+    color3: Color = Color(0xFFFFA508)
+) {
+    Canvas(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(80.dp)
+    ) {
+        val stripeHeight = size.height * 0.70f
+        val stripeWidth = stripeHeight * 0.85f
+        val startY = (size.height - stripeHeight) / 2f
+        val slant = stripeWidth * 0.35f
+
+        fun stripePath(offsetX: Float, width: Float): Path {
+            return Path().apply {
+                moveTo(offsetX, startY + stripeHeight)
+                lineTo(offsetX + slant, startY)
+                lineTo(offsetX + slant + width, startY)
+                lineTo(offsetX + width, startY + stripeHeight)
+                close()
+            }
+        }
+
+        val firstOffset = 0f
+        val secondOffset = stripeWidth * 0.9f
+        val thirdOffset = stripeWidth * 1.8f
+
+        drawPath(stripePath(firstOffset, stripeWidth), color1)
+        drawPath(stripePath(secondOffset, stripeWidth), color2)
+        drawPath(stripePath(thirdOffset, stripeWidth * 6.5f), color3)
     }
 }
 
