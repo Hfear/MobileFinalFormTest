@@ -1,8 +1,5 @@
 package com.example.mobileformtest.ui.screens
 
-import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -16,14 +13,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-class ProfileActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContent {
-            ProfileScreen()
-        }
-    }
-}
+// REMOVED ProfileActivity - using Composable only now
 
 @Composable
 fun ProfileScreen() {
@@ -148,12 +138,3 @@ fun CarImageCard(label: String) {
         }
     }
 }
-
-// TODO: Add your backend functions here
-// Example:
-// fun loadCarImages() { }
-// fun loadSavedParts() { }
-// fun loadHistory() { }
-
-// Steven: get rid of refresh button-make it so pull down is refresh
-//top right will have an custom icon to go to profile 
