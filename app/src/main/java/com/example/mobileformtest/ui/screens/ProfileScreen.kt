@@ -16,7 +16,13 @@ import androidx.compose.ui.unit.sp
 // REMOVED ProfileActivity - using Composable only now
 
 @Composable
-fun ProfileScreen() {
+fun ProfileScreen(
+    userEmail: String?,
+    onSignOut: () -> Unit,
+    onSignInRequest: () -> Unit
+) {
+    val isSignedIn = userEmail != null
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -32,87 +38,130 @@ fun ProfileScreen() {
             modifier = Modifier.padding(bottom = 16.dp)
         )
 
-        // Your Car(s) Section
-        Text(
-            text = "Your Car(s)",
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
-
-        // Car Images Grid (2x2)
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 24.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                CarImageCard("Stock\nImage")
-                CarImageCard("Stock\nFacade")
-            }
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                CarImageCard("Stock\nImage")
-                CarImageCard("Stock\nFacade")
-            }
-        }
-
-        // Saved Parts Section
-        Text(
-            text = "Saved Parts",
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
-
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(150.dp)
                 .padding(bottom = 24.dp),
             colors = CardDefaults.cardColors(containerColor = Color.White),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
             ) {
                 Text(
-                    text = "Saved Parts Content",
-                    fontSize = 16.sp
+                    text = if (isSignedIn) "Signed in" else "Guest",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.SemiBold
                 )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = userEmail ?: "You are currently browsing as a guest.",
+                    fontSize = 14.sp
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                if (isSignedIn) {
+                    Button(
+                        onClick = onSignOut,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "Sign Out")
+                    }
+                } else {
+                    Button(
+                        onClick = onSignInRequest,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "Go to Sign In")
+                    }
+                }
             }
         }
 
-        // History Section
-        Text(
-            text = "History",
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
+        if (isSignedIn) {
+            // Your Car(s) Section
+            Text(
+                text = "Your Car(s)",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
 
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(150.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-        ) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
+            // Car Images Grid (2x2)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 24.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text(
-                    text = "History Content",
-                    fontSize = 16.sp
-                )
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    CarImageCard("Stock\nImage")
+                    CarImageCard("Stock\nFacade")
+                }
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    CarImageCard("Stock\nImage")
+                    CarImageCard("Stock\nFacade")
+                }
+            }
+
+            // Saved Parts Section
+            Text(
+                text = "Saved Parts",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(150.dp)
+                    .padding(bottom = 24.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Saved Parts Content",
+                        fontSize = 16.sp
+                    )
+                }
+            }
+
+            // History Section
+            Text(
+                text = "History",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(150.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "History Content",
+                        fontSize = 16.sp
+                    )
+                }
             }
         }
     }
