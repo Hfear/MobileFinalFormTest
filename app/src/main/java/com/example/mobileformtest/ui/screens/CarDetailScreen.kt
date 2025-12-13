@@ -1,7 +1,16 @@
 package com.example.mobileformtest.ui.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -9,17 +18,37 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.mobileformtest.data.SavedCarsRepository
 import com.example.mobileformtest.model.Car
 import com.example.mobileformtest.model.PartCategory
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import kotlinx.coroutines.launch
 
 /**
  * Car Detail Screen
@@ -30,9 +59,15 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 fun CarDetailScreen(
     car: Car,
     onBackClick: () -> Unit = {},
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    currentUserId: String? = null
 ) {
     var selectedCategory by remember { mutableStateOf<PartCategory?>(null) }
+    val coroutineScope = rememberCoroutineScope()
+    val savedCarsRepository = remember { SavedCarsRepository() }
+    var isSaving by remember { mutableStateOf(false) }
+    var saveSuccessMessage by remember { mutableStateOf<String?>(null) }
+    var saveErrorMessage by remember { mutableStateOf<String?>(null) }
 
     Scaffold(
         topBar = {
@@ -134,6 +169,67 @@ fun CarDetailScreen(
                         InfoRow(
                             label = "In Stock",
                             value = "${car.parts.count { it.inStock }}"
+                        )
+                    }
+                }
+            }
+
+            // Save Car Action
+            item {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Button(
+                        onClick = {
+                            val userId = currentUserId
+                            if (userId == null) {
+                                saveErrorMessage = "Sign in to save cars"
+                                saveSuccessMessage = null
+                            } else {
+                                isSaving = true
+                                saveSuccessMessage = null
+                                saveErrorMessage = null
+                                coroutineScope.launch {
+                                    try {
+                                        savedCarsRepository.saveCar(userId, car)
+                                        saveSuccessMessage = "Car saved to your garage"
+                                    } catch (e: Exception) {
+                                        saveErrorMessage = e.localizedMessage ?: "Unable to save car"
+                                    } finally {
+                                        isSaving = false
+                                    }
+                                }
+                            }
+                        },
+                        enabled = !isSaving,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        if (isSaving) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp,
+                                color = Color.White
+                            )
+                        } else {
+                            Text("Save Car")
+                        }
+                    }
+
+                    when {
+                        saveSuccessMessage != null -> Text(
+                            text = saveSuccessMessage!!,
+                            color = MaterialTheme.colorScheme.primary,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        saveErrorMessage != null -> Text(
+                            text = saveErrorMessage!!,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        currentUserId == null -> Text(
+                            text = "Sign in to save cars and parts",
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                            style = MaterialTheme.typography.bodySmall
                         )
                     }
                 }

@@ -105,7 +105,8 @@ fun CarPartsApp(authManager: FirebaseAuthManager) {
                 Screen.DETAIL -> selectedCar?.let { car ->
                     CarDetailScreen(
                         car = car,
-                        onBackClick = { currentScreen = Screen.SEARCH }
+                        onBackClick = { currentScreen = Screen.SEARCH },
+                        currentUserId = currentUser?.uid
                     )
                 }
                 Screen.SIGN_IN -> SignInScreen(
