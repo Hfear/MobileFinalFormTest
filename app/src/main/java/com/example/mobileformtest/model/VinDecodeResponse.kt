@@ -3,12 +3,17 @@ package com.example.mobileformtest.model
 import com.google.gson.annotations.SerializedName
 
 data class VinDecodeResponse(
-    @SerializedName("Results") val results: List<VinResult>
+    @SerializedName("Results") val results: List<VinResultData>
 )
 
-data class VinResult(
-    @SerializedName("Variable") val variable: String,
-    @SerializedName("Value") val value: String?
+data class VinResultData(
+    @SerializedName("Make") val make: String?,
+    @SerializedName("Model") val model: String?,
+    @SerializedName("ModelYear") val modelYear: String?,
+    @SerializedName("VehicleType") val vehicleType: String?,
+    @SerializedName("Manufacturer") val manufacturer: String?,
+    @SerializedName("PlantCountry") val plantCountry: String?,
+    @SerializedName("EngineCylinders") val engineCylinders: String?
 )
 
 data class DecodedVehicle(
