@@ -40,26 +40,35 @@ fun CarDetailScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "${car.year} ${car.make} ${car.model}",
-                        fontWeight = FontWeight.Bold
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Back"
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+            Box {
+                // Slanted colored header background (same as Home screen)
+                SlantedHeaderBackground(
+                    modifier = Modifier.fillMaxWidth()
                 )
-            )
+
+                TopAppBar(
+                    title = {
+                        Text(
+                            text = "${car.year} ${car.make} ${car.model}",
+                            fontWeight = FontWeight.Bold
+                        )
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onBackClick) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back"
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.Transparent,
+                        titleContentColor = Color.White,
+                        navigationIconContentColor = Color.White,
+                        scrolledContainerColor = Color.Transparent
+                    )
+                )
+            }
         }
     ) { paddingValues ->
         LazyColumn(

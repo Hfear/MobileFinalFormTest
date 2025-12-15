@@ -8,7 +8,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -131,63 +131,73 @@ fun ProfileScreen(
                     }
                 }
             }
-        }
 
-        // Saved parts section
-        Text(
-            text = "Saved Parts",
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
+            // ----------------------------
+            // Saved Parts Section
+            // ----------------------------
+            Text(
+                text = "Saved Parts",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
 
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(150.dp)
-                .padding(bottom = 24.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-        ) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(150.dp)
+                    .padding(bottom = 24.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant  // brighter edge
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
             ) {
-                Text(
-                    text = "Saved Parts Content",
-                    fontSize = 16.sp
-                )
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Saved Parts Content",
+                        fontSize = 16.sp
+                    )
+                }
             }
-        }
 
-        // History section
-        Text(
-            text = "History",
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
+            // ----------------------------
+            // History Section
+            // ----------------------------
+            Text(
+                text = "History",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
 
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(150.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-        ) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(150.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
             ) {
-                Text(
-                    text = "History Content",
-                    fontSize = 16.sp
-                )
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "History Content",
+                        fontSize = 16.sp
+                    )
+                }
             }
         }
     }
 }
 
+
+// --- REUSABLE CAR IMAGE CARD ---
 @Composable
 fun AddUnknownCarCard(onClick: () -> Unit) {
     Card(

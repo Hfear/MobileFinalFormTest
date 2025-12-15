@@ -73,7 +73,7 @@ fun HomeScreen(
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = Color.Transparent,
-                        titleContentColor = Color.Black,
+                        titleContentColor = Color.White,
                         scrolledContainerColor = Color.Transparent
                     )
                 )
@@ -134,9 +134,9 @@ fun HomeScreen(
 @Composable
 fun SlantedHeaderBackground(
     modifier: Modifier = Modifier,
-    color1: Color = Color(0xFF6F8FB0),
-    color2: Color = Color(0xFFAED8F6),
-    color3: Color = Color(0xFFFFA508)
+    color1: Color = Color(0xFF1F3459),
+    color2: Color = Color(0xFF4F8C9B),
+    color3: Color = Color(0xFF89A7A3)
 ) {
     Canvas(
         modifier = modifier
