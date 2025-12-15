@@ -28,7 +28,8 @@ fun CarDetailScreen(
     car: Car,
     onBackClick: () -> Unit = {},
     modifier: Modifier = Modifier,
-    currentUserId: String? = null
+    currentUserId: String? = null,
+    onAddMissingInfo: () -> Unit = {}
 ) {
     var selectedCategory by remember { mutableStateOf<PartCategory?>(null) }
     val coroutineScope = rememberCoroutineScope()
@@ -68,17 +69,17 @@ fun CarDetailScreen(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Car Image Card
+            // Car image
             item {
                 CarImageCard(car)
             }
 
-            // Car Info Card
+            // Car info
             item {
                 CarInfoCard(car)
             }
 
-            // Save Car Button
+            // Save button
             item {
                 SaveCarSection(
                     currentUserId = currentUserId,
@@ -108,7 +109,7 @@ fun CarDetailScreen(
                 )
             }
 
-            // Category Filter Chips
+            // Category filters
             item {
                 CategoryFilterSection(
                     selectedCategory = selectedCategory,
@@ -116,7 +117,7 @@ fun CarDetailScreen(
                 )
             }
 
-            // Parts List Header
+            // Parts header
             item {
                 Text(
                     text = "Available Parts",
@@ -125,7 +126,7 @@ fun CarDetailScreen(
                 )
             }
 
-            // Parts List or Empty State
+            // Parts list or empty state
             val filteredParts = if (selectedCategory != null) {
                 car.parts.filter { it.getCategoryEnum() == selectedCategory }
             } else {
@@ -134,7 +135,7 @@ fun CarDetailScreen(
 
             if (car.parts.isEmpty()) {
                 item {
-                    NoPartsAvailableCard()
+                    NoPartsAvailableCard(onAddInfoClick = onAddMissingInfo)
                 }
             } else {
                 items(filteredParts) { part ->
@@ -344,40 +345,36 @@ private fun CategoryFilterSection(
 }
 
 @Composable
-private fun NoPartsAvailableCard() {
+private fun NoPartsAvailableCard(onAddInfoClick: () -> Unit) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 16.dp),
+        modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
         )
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(32.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Icon(
-                Icons.Default.Info,
-                contentDescription = null,
-                modifier = Modifier.size(48.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
             Text(
-                text = "No Parts Information Available",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
+                text = "No parts available for this vehicle yet.",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+
             Text(
-                text = "Parts data for this vehicle is currently being added to our catalog. Please check back later.",
+                text = "If you have missing details, add them to improve matches.",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                textAlign = TextAlign.Center
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
             )
+
+            Button(
+                onClick = onAddInfoClick,
+                modifier = Modifier.align(Alignment.End)
+            ) {
+                Text("Add Missing Info")
+            }
         }
     }
 }

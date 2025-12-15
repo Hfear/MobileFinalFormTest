@@ -21,7 +21,8 @@ import com.example.mobileformtest.ui.VinViewModel
 fun VinDecoderScreen(
     onVehicleSaved: (DecodedVehicle) -> Unit,
     viewModel: VinViewModel,
-    currentUserId: String? = null
+    currentUserId: String? = null,
+    onManualEntryClick: () -> Unit = {}
 ) {
     var vinInput by remember { mutableStateOf("") }
 
@@ -49,6 +50,7 @@ fun VinDecoderScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // Info card
             Card(
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.secondaryContainer
@@ -68,6 +70,7 @@ fun VinDecoderScreen(
                 }
             }
 
+            // VIN input field
             OutlinedTextField(
                 value = vinInput,
                 onValueChange = {
@@ -84,6 +87,7 @@ fun VinDecoderScreen(
                 isError = vinInput.isNotEmpty() && vinInput.length < 17
             )
 
+            // Decode button
             Button(
                 onClick = {
                     viewModel.decodeVin(vinInput)
@@ -98,6 +102,7 @@ fun VinDecoderScreen(
                 Text("Decode VIN", style = MaterialTheme.typography.titleMedium)
             }
 
+            // State handling
             when (val state = viewModel.vinUiState) {
                 is VinUiState.Loading -> {
                     Box(
@@ -145,6 +150,14 @@ fun VinDecoderScreen(
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onErrorContainer
                             )
+
+                            Spacer(modifier = Modifier.height(16.dp))
+                            OutlinedButton(
+                                onClick = onManualEntryClick,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("Can't decode? Add car manually")
+                            }
                         }
                     }
                 }

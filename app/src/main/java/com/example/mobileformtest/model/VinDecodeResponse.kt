@@ -24,5 +24,6 @@ data class DecodedVehicle(
     val vehicleType: String,
     val manufacturer: String,
     val plantCountry: String,
-    val engineInfo: String
+    val engineInfo: String,
+    val userContributed: Map<String, String> = emptyMap()
 )

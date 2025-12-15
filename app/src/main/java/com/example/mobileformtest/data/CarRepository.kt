@@ -11,6 +11,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 import kotlinx.serialization.json.Json
 import java.io.IOException
+import kotlin.math.abs
 
 class CarRepository(
     private val context: Context,
@@ -186,5 +187,51 @@ class CarRepository(
             else -> false
         }
         return CarPart(name, category, price, inStock)
+    }
+
+    // Find compatible parts for a vehicle
+    suspend fun getCompatibleParts(make: String, model: String, year: Int): List<CarPart> {
+        return try {
+            val allCars = getCars()
+
+            // Priority 1: Exact match (same make, model, year)
+            val exactMatch = allCars.find {
+                it.make.equals(make, ignoreCase = true) &&
+                        it.model.equals(model, ignoreCase = true) &&
+                        it.year == year
+            }
+            if (exactMatch != null && exactMatch.parts.isNotEmpty()) {
+                return exactMatch.parts
+            }
+
+            // Priority 2: Same model, nearby year (±5 years)
+            val sameModel = allCars.filter {
+                it.make.equals(make, ignoreCase = true) &&
+                        it.model.equals(model, ignoreCase = true) &&
+                        kotlin.math.abs(it.year - year) <= 5
+            }.flatMap { it.parts }
+
+            if (sameModel.isNotEmpty()) {
+                return sameModel.distinctBy { it.name }.take(15)
+            }
+
+            // Priority 3: Same make, any model
+            val sameMake = allCars.filter {
+                it.make.equals(make, ignoreCase = true)
+            }.flatMap { it.parts }
+
+            if (sameMake.isNotEmpty()) {
+                return sameMake.distinctBy { it.name }.take(10)
+            }
+
+            // Priority 4: Universal parts (all makes)
+            return allCars.flatMap { it.parts }
+                .distinctBy { it.name }
+                .take(5)
+
+        } catch (e: Exception) {
+            Log.e("CarRepository", "Error getting compatible parts: ${e.message}")
+            emptyList()
+        }
     }
 }

@@ -46,7 +46,7 @@ class VinViewModel(private val context: Context) : ViewModel() {
 
             val vehicle = vinRepository.decodeVin(vin)
             if (vehicle != null) {
-                // AUTOMATICALLY add to catalog in background (silent)
+                // Auto-add to catalog
                 carRepository.addCarFromVinDecoder(vehicle)
 
                 vinUiState = VinUiState.Success(vehicle)
@@ -56,18 +56,15 @@ class VinViewModel(private val context: Context) : ViewModel() {
         }
     }
 
-    // Save vehicle to user's personal "My Vehicles"
+    // Save to user profile
     fun saveVehicleToProfile(vehicle: DecodedVehicle, userId: String?) {
-        // Save to memory
         if (!_savedVehicles.any { it.vin == vehicle.vin }) {
             _savedVehicles.add(vehicle)
         }
 
-        // Save to Firebase if user is logged in
         if (userId != null) {
             viewModelScope.launch {
                 try {
-                    // Try to find the car in catalog
                     val car = carRepository.findCarBySpecs(
                         vehicle.make,
                         vehicle.model,
@@ -75,11 +72,9 @@ class VinViewModel(private val context: Context) : ViewModel() {
                     )
 
                     if (car != null) {
-                        // Save the full car object to user's saved cars
                         savedCarsRepository.saveCar(userId, car)
                         Log.d("VinViewModel", "Saved car to user profile")
                     } else {
-                        // Fallback: save basic vehicle data
                         saveVehicleDataToFirebase(vehicle, userId)
                     }
                 } catch (e: Exception) {
@@ -89,7 +84,7 @@ class VinViewModel(private val context: Context) : ViewModel() {
         }
     }
 
-    // Load user's saved vehicles
+    // Load user's vehicles
     fun loadVehiclesFromFirebase(userId: String) {
         firestore.collection("users")
             .document(userId)
@@ -121,6 +116,76 @@ class VinViewModel(private val context: Context) : ViewModel() {
             }
     }
 
+    // Submit missing info for a vehicle
+    fun submitMissingInfo(
+        vehicle: DecodedVehicle,
+        updates: Map<String, String>,
+        userId: String?
+    ) {
+        if (userId == null) return
+
+        viewModelScope.launch {
+            val submissionData = hashMapOf(
+                "vin" to vehicle.vin,
+                "make" to vehicle.make,
+                "model" to vehicle.model,
+                "year" to vehicle.year,
+                "updates" to updates,
+                "submittedBy" to userId,
+                "status" to "pending",
+                "timestamp" to System.currentTimeMillis()
+            )
+
+            firestore.collection("user_contributions")
+                .add(submissionData)
+                .addOnSuccessListener {
+                    Log.d("VinViewModel", "User contribution submitted")
+                }
+                .addOnFailureListener { e ->
+                    Log.e("VinViewModel", "Error submitting: ${e.message}")
+                }
+        }
+    }
+
+    // Clear on sign out
+    fun clearSavedVehicles() {
+        _savedVehicles.clear()
+    }
+
+    fun reset() {
+        vinUiState = VinUiState.Idle
+    }
+
+    // Update getCarFromVehicle to include compatible parts
+    suspend fun getCarFromVehicle(vehicle: DecodedVehicle): Car {
+        val catalogCar = carRepository.findCarBySpecs(
+            vehicle.make,
+            vehicle.model,
+            vehicle.year.toIntOrNull() ?: 0
+        )
+
+        if (catalogCar != null) {
+            return catalogCar
+        }
+
+        // Get compatible parts from similar vehicles
+        val compatibleParts = carRepository.getCompatibleParts(
+            vehicle.make,
+            vehicle.model,
+            vehicle.year.toIntOrNull() ?: 0
+        )
+
+        // Create car with compatible parts
+        return Car(
+            id = vehicle.vin.hashCode(),
+            make = vehicle.make,
+            model = vehicle.model,
+            year = vehicle.year.toIntOrNull() ?: 0,
+            imageUrl = "${vehicle.make.lowercase()}_${vehicle.model.lowercase()}",
+            parts = compatibleParts
+        )
+    }
+
     private fun saveVehicleDataToFirebase(vehicle: DecodedVehicle, userId: String) {
         val vehicleData = hashMapOf(
             "vin" to vehicle.vin,
@@ -145,37 +210,5 @@ class VinViewModel(private val context: Context) : ViewModel() {
             .addOnFailureListener { e ->
                 Log.e("VinViewModel", "Error saving vehicle data: ${e.message}")
             }
-    }
-
-    fun reset() {
-        vinUiState = VinUiState.Idle
-    }
-
-    suspend fun getCarFromVehicle(vehicle: DecodedVehicle): Car {
-        // Try to find car in catalog first
-        val catalogCar = carRepository.findCarBySpecs(
-            vehicle.make,
-            vehicle.model,
-            vehicle.year.toIntOrNull() ?: 0
-        )
-
-        // If found in catalog, return it (with real parts)
-        if (catalogCar != null) {
-            return catalogCar
-        }
-
-        // Otherwise, create a Car object with NO parts (empty list)
-        return Car(
-            id = vehicle.vin.hashCode(),
-            make = vehicle.make,
-            model = vehicle.model,
-            year = vehicle.year.toIntOrNull() ?: 0,
-            imageUrl = "${vehicle.make.lowercase()}_${vehicle.model.lowercase()}",
-            parts = emptyList() // No fake parts!
-        )
-    }
-
-    fun clearSavedVehicles() {
-        _savedVehicles.clear()
     }
 }
