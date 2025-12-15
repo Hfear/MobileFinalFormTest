@@ -20,7 +20,6 @@ MobileFormTest is an Android app built with **Kotlin** and **Jetpack Compose**. 
 
 ## Project Structure
 
-```
 
 app/src/main/
 ├── assets/                         (optional local fallback data)
@@ -53,7 +52,7 @@ app/src/main/
 │   └── MainActivity.kt
 └── res/
 
-```
+
 
 ---
 
@@ -76,7 +75,7 @@ Authentication is handled through Firebase Auth (email/password) and the current
 
 This diagram focuses on the **car catalog flow** (Home/Search → Detail). The VIN flow is listed right after.
 
-```
+
 
 ┌─────────────────────────────────────────────────────────────────┐
 │  1. USER OPENS APP                                              │
@@ -112,17 +111,17 @@ This diagram focuses on the **car catalog flow** (Home/Search → Detail). The V
 │  • May use local fallback data if included                       │
 └─────────────────────────────────────────────────────────────────┘
 
-```
+
  ↓ Data flows back up through the same chain ↓
-```
+
 
 HomeScreen displays the cars.
 
-```
+
 
 ### VIN Flow 
 
-```
+
 
 VinDecoderScreen
 → VinViewModel.decodeVin(vin)
@@ -135,13 +134,13 @@ If decoded:
 * VinViewModel.saveVehicleToProfile saves the vehicle to:
   users/{userId}/savedCars
 
-```
+
 
 ---
 
 ## Complete Data Flow Example (Updated for This App)
 
-```
+
 
 ┌─────────────────────────────────────────────────┐
 │ 1. APP LAUNCH                                   │
@@ -213,7 +212,7 @@ If decoded:
 │    MainActivity routes back to Home/Search      │
 └─────────────────────────────────────────────────┘
 
-````
+
 
 ---
 
@@ -235,7 +234,7 @@ Button(onClick = {
 }) {
     Text("Load Cars")
 }
-````
+
 
 ### Example of RIGHT
 
@@ -251,9 +250,9 @@ Button(onClick = {
 fun refreshData() {
     getCars() // ViewModel calls repository internally
 }
-```
 
----
+
+
 
 ## Setup / Run
 
