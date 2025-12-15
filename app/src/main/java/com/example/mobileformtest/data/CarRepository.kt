@@ -5,17 +5,13 @@ import android.util.Log
 import com.example.mobileformtest.model.Car
 import com.example.mobileformtest.model.CarPart
 import com.example.mobileformtest.model.CarResponse
+import com.example.mobileformtest.model.DecodedVehicle
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 import kotlinx.serialization.json.Json
 import java.io.IOException
 
-/**
- * Repository for car data
- * Handles reading from local JSON file (simulating API calls)
- * Will be easy to swap to real API calls later
- */
 class CarRepository(
     private val context: Context,
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
@@ -30,12 +26,8 @@ class CarRepository(
         private const val CARS_COLLECTION = "cars"
     }
 
-    /**
-     * Fetch cars from local JSON file
-     *
-     * @return List of cars
-     * @throws IOException if file cannot be read
-     */
+    // ... existing getCars(), searchCars(), getCarById() functions stay the same ...
+
     suspend fun getCars(): List<Car> {
         return try {
             fetchCarsFromFirestore()
@@ -45,13 +37,6 @@ class CarRepository(
         }
     }
 
-    /**
-     * Search cars by make or model
-     *
-     * @param query Search term
-     * @return Filtered list of cars
-     * @throws IOException if data cannot be loaded
-     */
     suspend fun searchCars(query: String): List<Car> {
         val allCars = getCars()
 
@@ -65,25 +50,85 @@ class CarRepository(
         }
     }
 
-    /**
-     * Get a specific car by ID
-     *
-     * @param carId The car's ID
-     * @return Car if found, null otherwise
-     * @throws IOException if data cannot be loaded
-     */
     suspend fun getCarById(carId: Int): Car? {
         val allCars = getCars()
         return allCars.find { it.id == carId }
     }
 
-    /**
-     * Load JSON file from assets folder
-     *
-     * @param fileName Name of the JSON file
-     * @return String content of the file
-     * @throws IOException if file cannot be read
-     */
+    // NEW: Check if car exists in Firestore by make/model/year
+    suspend fun carExistsInCatalog(make: String, model: String, year: Int): Boolean {
+        return try {
+            val snapshot = firestore.collection(CARS_COLLECTION)
+                .whereEqualTo("make", make)
+                .whereEqualTo("model", model)
+                .whereEqualTo("year", year)
+                .limit(1)
+                .get()
+                .await()
+
+            !snapshot.isEmpty
+        } catch (e: Exception) {
+            Log.e("CarRepository", "Error checking if car exists: ${e.message}")
+            false
+        }
+    }
+
+    // NEW: Automatically add car from VIN decoder to catalog
+    suspend fun addCarFromVinDecoder(vehicle: DecodedVehicle): Boolean {
+        return try {
+            // Check if already exists first
+            if (carExistsInCatalog(vehicle.make, vehicle.model, vehicle.year.toIntOrNull() ?: 0)) {
+                Log.d("CarRepository", "Car already exists in catalog, skipping")
+                return true
+            }
+
+            val carId = "${vehicle.make}_${vehicle.model}_${vehicle.year}".hashCode()
+
+            val carData = hashMapOf(
+                "id" to carId,
+                "make" to vehicle.make,
+                "model" to vehicle.model,
+                "year" to (vehicle.year.toIntOrNull() ?: 0),
+                "imageUrl" to "${vehicle.make.lowercase()}_${vehicle.model.lowercase()}",
+                "parts" to emptyList<Map<String, Any>>(), // Empty initially
+                "addedFromVin" to true,
+                "vin" to vehicle.vin,
+                "vehicleType" to vehicle.vehicleType,
+                "manufacturer" to vehicle.manufacturer,
+                "timestamp" to System.currentTimeMillis()
+            )
+
+            firestore.collection(CARS_COLLECTION)
+                .document(carId.toString())
+                .set(carData)
+                .await()
+
+            Log.d("CarRepository", "Successfully added ${vehicle.make} ${vehicle.model} to catalog")
+            true
+        } catch (e: Exception) {
+            Log.e("CarRepository", "Error adding car to catalog: ${e.message}", e)
+            false
+        }
+    }
+
+    // NEW: Find car in catalog by make/model/year
+    suspend fun findCarBySpecs(make: String, model: String, year: Int): Car? {
+        return try {
+            val snapshot = firestore.collection(CARS_COLLECTION)
+                .whereEqualTo("make", make)
+                .whereEqualTo("model", model)
+                .whereEqualTo("year", year)
+                .limit(1)
+                .get()
+                .await()
+
+            snapshot.documents.firstOrNull()?.toCar()
+        } catch (e: Exception) {
+            Log.e("CarRepository", "Error finding car: ${e.message}")
+            null
+        }
+    }
+
     private fun loadJsonFromAssets(fileName: String): String {
         return try {
             context.assets.open(fileName).bufferedReader().use { it.readText() }
@@ -106,7 +151,7 @@ class CarRepository(
     }
 
     private fun DocumentSnapshot.toCar(): Car? {
-        val id = getLong("id")?.toInt() ?: id.toIntOrNull()
+        val id = getLong("id")?.toInt() ?: this.id.toIntOrNull()
         val make = getString("make") ?: return null
         val model = getString("model") ?: return null
         val year = getLong("year")?.toInt()

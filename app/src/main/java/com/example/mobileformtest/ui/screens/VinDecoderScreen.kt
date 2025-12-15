@@ -12,7 +12,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.mobileformtest.model.DecodedVehicle
 import com.example.mobileformtest.ui.VinUiState
 import com.example.mobileformtest.ui.VinViewModel
@@ -21,7 +20,8 @@ import com.example.mobileformtest.ui.VinViewModel
 @Composable
 fun VinDecoderScreen(
     onVehicleSaved: (DecodedVehicle) -> Unit,
-    viewModel: VinViewModel = viewModel()
+    viewModel: VinViewModel,
+    currentUserId: String? = null
 ) {
     var vinInput by remember { mutableStateOf("") }
 
@@ -49,7 +49,6 @@ fun VinDecoderScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Info Card
             Card(
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.secondaryContainer
@@ -69,10 +68,12 @@ fun VinDecoderScreen(
                 }
             }
 
-            // VIN Input
             OutlinedTextField(
                 value = vinInput,
-                onValueChange = { vinInput = it.uppercase() },
+                onValueChange = {
+                    val cleaned = it.uppercase().filter { char -> char.isLetterOrDigit() }.take(17)
+                    vinInput = cleaned
+                },
                 modifier = Modifier.fillMaxWidth(),
                 label = { Text("VIN Number") },
                 placeholder = { Text("e.g., 1HGBH41JXMN109186") },
@@ -80,10 +81,9 @@ fun VinDecoderScreen(
                 supportingText = {
                     Text("${vinInput.length}/17 characters")
                 },
-                isError = vinInput.isNotEmpty() && vinInput.length < 11
+                isError = vinInput.isNotEmpty() && vinInput.length < 17
             )
 
-            // Decode Button
             Button(
                 onClick = {
                     viewModel.decodeVin(vinInput)
@@ -98,7 +98,6 @@ fun VinDecoderScreen(
                 Text("Decode VIN", style = MaterialTheme.typography.titleMedium)
             }
 
-            // Results
             when (val state = viewModel.vinUiState) {
                 is VinUiState.Loading -> {
                     Box(
@@ -121,7 +120,7 @@ fun VinDecoderScreen(
                     DecodedVehicleCard(
                         vehicle = state.vehicle,
                         onSaveClick = {
-                            viewModel.saveVehicle(state.vehicle)
+                            viewModel.saveVehicleToProfile(state.vehicle, currentUserId)
                             onVehicleSaved(state.vehicle)
                         }
                     )
@@ -150,9 +149,7 @@ fun VinDecoderScreen(
                     }
                 }
 
-                is VinUiState.Idle -> {
-                    // Show nothing
-                }
+                is VinUiState.Idle -> { }
             }
         }
     }
@@ -215,7 +212,7 @@ fun DecodedVehicleCard(
                 modifier = Modifier.fillMaxWidth(),
                 enabled = !saved
             ) {
-                Text(if (saved) "Saved to Profile" else "Save to Profile")
+                Text(if (saved) "Saved to My Vehicles" else "Save to My Vehicles")
             }
         }
     }

@@ -9,7 +9,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun WelcomeScreen(onNavigateToSearch: () -> Unit) {
+fun WelcomeScreen(
+    onBrowseAsGuest: () -> Unit,
+    onSignInRequest: () -> Unit
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -35,12 +38,21 @@ fun WelcomeScreen(onNavigateToSearch: () -> Unit) {
         )
         Spacer(modifier = Modifier.height(32.dp))
         Button(
-            onClick = onNavigateToSearch,
+            onClick = onBrowseAsGuest,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp)
         ) {
-            Text("Browse Cars", style = MaterialTheme.typography.titleMedium)
+            Text("Browse as Guest", style = MaterialTheme.typography.titleMedium)
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+        OutlinedButton(
+            onClick = onSignInRequest,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+        ) {
+            Text("Sign In / Create Account", style = MaterialTheme.typography.titleMedium)
         }
     }
 }

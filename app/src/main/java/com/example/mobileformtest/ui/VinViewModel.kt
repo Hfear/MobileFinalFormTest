@@ -1,13 +1,20 @@
 package com.example.mobileformtest.ui
 
+import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.mobileformtest.data.CarRepository
+import com.example.mobileformtest.data.SavedCarsRepository
 import com.example.mobileformtest.data.VinRepository
+import com.example.mobileformtest.model.Car
 import com.example.mobileformtest.model.DecodedVehicle
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.launch
+import android.util.Log
 
 sealed interface VinUiState {
     object Idle : VinUiState
@@ -16,15 +23,17 @@ sealed interface VinUiState {
     data class Error(val message: String) : VinUiState
 }
 
-class VinViewModel : ViewModel() {
+class VinViewModel(private val context: Context) : ViewModel() {
     var vinUiState: VinUiState by mutableStateOf(VinUiState.Idle)
         private set
 
-    // Store saved vehicles
     private val _savedVehicles = mutableListOf<DecodedVehicle>()
     val savedVehicles: List<DecodedVehicle> get() = _savedVehicles
 
-    private val repository = VinRepository()
+    private val vinRepository = VinRepository()
+    private val carRepository = CarRepository(context)
+    private val savedCarsRepository = SavedCarsRepository()
+    private val firestore = Firebase.firestore
 
     fun decodeVin(vin: String) {
         if (vin.length < 11) {
@@ -35,22 +44,138 @@ class VinViewModel : ViewModel() {
         viewModelScope.launch {
             vinUiState = VinUiState.Loading
 
-            val vehicle = repository.decodeVin(vin)
-            vinUiState = if (vehicle != null) {
-                VinUiState.Success(vehicle)
+            val vehicle = vinRepository.decodeVin(vin)
+            if (vehicle != null) {
+                // AUTOMATICALLY add to catalog in background (silent)
+                carRepository.addCarFromVinDecoder(vehicle)
+
+                vinUiState = VinUiState.Success(vehicle)
             } else {
-                VinUiState.Error("Failed to decode VIN. Please check and try again.")
+                vinUiState = VinUiState.Error("Failed to decode VIN. Please check and try again.")
             }
         }
     }
 
-    fun saveVehicle(vehicle: DecodedVehicle) {
+    // Save vehicle to user's personal "My Vehicles"
+    fun saveVehicleToProfile(vehicle: DecodedVehicle, userId: String?) {
+        // Save to memory
         if (!_savedVehicles.any { it.vin == vehicle.vin }) {
             _savedVehicles.add(vehicle)
         }
+
+        // Save to Firebase if user is logged in
+        if (userId != null) {
+            viewModelScope.launch {
+                try {
+                    // Try to find the car in catalog
+                    val car = carRepository.findCarBySpecs(
+                        vehicle.make,
+                        vehicle.model,
+                        vehicle.year.toIntOrNull() ?: 0
+                    )
+
+                    if (car != null) {
+                        // Save the full car object to user's saved cars
+                        savedCarsRepository.saveCar(userId, car)
+                        Log.d("VinViewModel", "Saved car to user profile")
+                    } else {
+                        // Fallback: save basic vehicle data
+                        saveVehicleDataToFirebase(vehicle, userId)
+                    }
+                } catch (e: Exception) {
+                    Log.e("VinViewModel", "Error saving vehicle: ${e.message}")
+                }
+            }
+        }
+    }
+
+    // Load user's saved vehicles
+    fun loadVehiclesFromFirebase(userId: String) {
+        firestore.collection("users")
+            .document(userId)
+            .collection("savedCars")
+            .get()
+            .addOnSuccessListener { documents ->
+                val vehicles = documents.mapNotNull { doc ->
+                    try {
+                        DecodedVehicle(
+                            vin = doc.getString("vin") ?: doc.id,
+                            make = doc.getString("make") ?: "Unknown",
+                            model = doc.getString("model") ?: "Unknown",
+                            year = doc.getLong("year")?.toString() ?: "Unknown",
+                            vehicleType = doc.getString("vehicleType") ?: "Unknown",
+                            manufacturer = doc.getString("manufacturer") ?: "Unknown",
+                            plantCountry = "",
+                            engineInfo = ""
+                        )
+                    } catch (e: Exception) {
+                        Log.e("VinViewModel", "Error parsing vehicle: ${e.message}")
+                        null
+                    }
+                }
+                _savedVehicles.clear()
+                _savedVehicles.addAll(vehicles)
+            }
+            .addOnFailureListener { e ->
+                Log.e("VinViewModel", "Error loading vehicles: ${e.message}")
+            }
+    }
+
+    private fun saveVehicleDataToFirebase(vehicle: DecodedVehicle, userId: String) {
+        val vehicleData = hashMapOf(
+            "vin" to vehicle.vin,
+            "make" to vehicle.make,
+            "model" to vehicle.model,
+            "year" to (vehicle.year.toIntOrNull() ?: 0),
+            "vehicleType" to vehicle.vehicleType,
+            "manufacturer" to vehicle.manufacturer,
+            "carId" to "${vehicle.make}_${vehicle.model}_${vehicle.year}".hashCode(),
+            "imageUrl" to "${vehicle.make.lowercase()}_${vehicle.model.lowercase()}",
+            "savedAt" to System.currentTimeMillis()
+        )
+
+        firestore.collection("users")
+            .document(userId)
+            .collection("savedCars")
+            .document(vehicle.vin)
+            .set(vehicleData)
+            .addOnSuccessListener {
+                Log.d("VinViewModel", "Vehicle data saved")
+            }
+            .addOnFailureListener { e ->
+                Log.e("VinViewModel", "Error saving vehicle data: ${e.message}")
+            }
     }
 
     fun reset() {
         vinUiState = VinUiState.Idle
+    }
+
+    suspend fun getCarFromVehicle(vehicle: DecodedVehicle): Car {
+        // Try to find car in catalog first
+        val catalogCar = carRepository.findCarBySpecs(
+            vehicle.make,
+            vehicle.model,
+            vehicle.year.toIntOrNull() ?: 0
+        )
+
+        // If found in catalog, return it (with real parts)
+        if (catalogCar != null) {
+            return catalogCar
+        }
+
+        // Otherwise, create a Car object with NO parts (empty list)
+        return Car(
+            id = vehicle.vin.hashCode(),
+            make = vehicle.make,
+            model = vehicle.model,
+            year = vehicle.year.toIntOrNull() ?: 0,
+            imageUrl = "${vehicle.make.lowercase()}_${vehicle.model.lowercase()}",
+            parts = emptyList() // No fake parts!
+        )
+    }
+
+    fun clearSavedVehicles() {
+        _savedVehicles.clear()
     }
 }

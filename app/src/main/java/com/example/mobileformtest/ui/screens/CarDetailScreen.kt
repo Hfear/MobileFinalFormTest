@@ -6,33 +6,36 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.mobileformtest.data.SavedCarsRepository
 import com.example.mobileformtest.model.Car
+import com.example.mobileformtest.model.CarPart
 import com.example.mobileformtest.model.PartCategory
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import kotlinx.coroutines.launch
 
-/**
- * Car Detail Screen
- * Shows detailed information about a specific car and its parts
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CarDetailScreen(
     car: Car,
     onBackClick: () -> Unit = {},
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    currentUserId: String? = null
 ) {
     var selectedCategory by remember { mutableStateOf<PartCategory?>(null) }
+    val coroutineScope = rememberCoroutineScope()
+    val savedCarsRepository = remember { SavedCarsRepository() }
+    var isSaving by remember { mutableStateOf(false) }
+    var saveSuccessMessage by remember { mutableStateOf<String?>(null) }
+    var saveErrorMessage by remember { mutableStateOf<String?>(null) }
 
     Scaffold(
         topBar = {
@@ -67,151 +70,50 @@ fun CarDetailScreen(
         ) {
             // Car Image Card
             item {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(240.dp),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-                ) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(MaterialTheme.colorScheme.surfaceVariant),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Text(
-                                    text = car.make,
-                                    fontSize = 32.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Text(
-                                    text = car.model,
-                                    fontSize = 24.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Text(
-                                    text = "${car.year}",
-                                    fontSize = 18.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                                )
-                            }
-                        }
-                    }
-                }
+                CarImageCard(car)
             }
 
             // Car Info Card
             item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer
-                    )
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(
-                            text = "Vehicle Details",
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        HorizontalDivider()
+                CarInfoCard(car)
+            }
 
-                        InfoRow(label = "Make", value = car.make)
-                        InfoRow(label = "Model", value = car.model)
-                        InfoRow(label = "Year", value = car.year.toString())
-                        InfoRow(label = "Parts Available", value = "${car.parts.size}")
-                        InfoRow(
-                            label = "In Stock",
-                            value = "${car.parts.count { it.inStock }}"
-                        )
+            // Save Car Button
+            item {
+                SaveCarSection(
+                    currentUserId = currentUserId,
+                    car = car,
+                    isSaving = isSaving,
+                    saveSuccessMessage = saveSuccessMessage,
+                    saveErrorMessage = saveErrorMessage,
+                    onSaveClick = { userId ->
+                        isSaving = true
+                        saveSuccessMessage = null
+                        saveErrorMessage = null
+                        coroutineScope.launch {
+                            try {
+                                savedCarsRepository.saveCar(userId, car)
+                                saveSuccessMessage = "Car saved to your garage"
+                            } catch (e: Exception) {
+                                saveErrorMessage = e.localizedMessage ?: "Unable to save car"
+                            } finally {
+                                isSaving = false
+                            }
+                        }
+                    },
+                    onError = { message ->
+                        saveErrorMessage = message
+                        saveSuccessMessage = null
                     }
-                }
+                )
             }
 
             // Category Filter Chips
             item {
-                Column {
-                    Text(
-                        text = "Filter by Category",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        FilterChip(
-                            selected = selectedCategory == null,
-                            onClick = { selectedCategory = null },
-                            label = { Text("All") }
-                        )
-                        FilterChip(
-                            selected = selectedCategory == PartCategory.ENGINE,
-                            onClick = {
-                                selectedCategory = if (selectedCategory == PartCategory.ENGINE) {
-                                    null
-                                } else {
-                                    PartCategory.ENGINE
-                                }
-                            },
-                            label = { Text("Engine") }
-                        )
-                        FilterChip(
-                            selected = selectedCategory == PartCategory.BRAKES,
-                            onClick = {
-                                selectedCategory = if (selectedCategory == PartCategory.BRAKES) {
-                                    null
-                                } else {
-                                    PartCategory.BRAKES
-                                }
-                            },
-                            label = { Text("Brakes") }
-                        )
-                    }
-
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        FilterChip(
-                            selected = selectedCategory == PartCategory.WHEELS,
-                            onClick = {
-                                selectedCategory = if (selectedCategory == PartCategory.WHEELS) {
-                                    null
-                                } else {
-                                    PartCategory.WHEELS
-                                }
-                            },
-                            label = { Text("Wheels") }
-                        )
-                        FilterChip(
-                            selected = selectedCategory == PartCategory.TRANSMISSION,
-                            onClick = {
-                                selectedCategory = if (selectedCategory == PartCategory.TRANSMISSION) {
-                                    null
-                                } else {
-                                    PartCategory.TRANSMISSION
-                                }
-                            },
-                            label = { Text("Trans") }
-                        )
-                    }
-                }
+                CategoryFilterSection(
+                    selectedCategory = selectedCategory,
+                    onCategorySelected = { selectedCategory = it }
+                )
             }
 
             // Parts List Header
@@ -223,43 +125,284 @@ fun CarDetailScreen(
                 )
             }
 
-            // Parts List
+            // Parts List or Empty State
             val filteredParts = if (selectedCategory != null) {
                 car.parts.filter { it.getCategoryEnum() == selectedCategory }
             } else {
                 car.parts
             }
 
-            items(filteredParts) { part ->
-                PartCard(part = part)
-            }
-
-            // Empty state if no parts match filter
-            if (filteredParts.isEmpty()) {
+            if (car.parts.isEmpty()) {
                 item {
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 16.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant
-                        )
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(32.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "No parts found in this category",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontSize = 16.sp
-                            )
-                        }
+                    NoPartsAvailableCard()
+                }
+            } else {
+                items(filteredParts) { part ->
+                    PartCard(part = part)
+                }
+
+                if (filteredParts.isEmpty()) {
+                    item {
+                        NoPartsInCategoryCard()
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun CarImageCard(car: Car) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(240.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.surfaceVariant),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = car.make,
+                    fontSize = 32.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = car.model,
+                    fontSize = 24.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = "${car.year}",
+                    fontSize = 18.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun CarInfoCard(car: Car) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = "Vehicle Details",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold
+            )
+            HorizontalDivider()
+            InfoRow(label = "Make", value = car.make)
+            InfoRow(label = "Model", value = car.model)
+            InfoRow(label = "Year", value = car.year.toString())
+            InfoRow(label = "Parts Available", value = "${car.parts.size}")
+            InfoRow(label = "In Stock", value = "${car.parts.count { it.inStock }}")
+        }
+    }
+}
+
+@Composable
+private fun SaveCarSection(
+    currentUserId: String?,
+    car: Car,
+    isSaving: Boolean,
+    saveSuccessMessage: String?,
+    saveErrorMessage: String?,
+    onSaveClick: (String) -> Unit,
+    onError: (String) -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Button(
+            onClick = {
+                if (currentUserId == null) {
+                    onError("Sign in to save cars")
+                } else {
+                    onSaveClick(currentUserId)
+                }
+            },
+            enabled = !isSaving,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            if (isSaving) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(20.dp),
+                    strokeWidth = 2.dp,
+                    color = Color.White
+                )
+            } else {
+                Text("Save Car")
+            }
+        }
+
+        when {
+            saveSuccessMessage != null -> Text(
+                text = saveSuccessMessage,
+                color = MaterialTheme.colorScheme.primary,
+                style = MaterialTheme.typography.bodyMedium
+            )
+            saveErrorMessage != null -> Text(
+                text = saveErrorMessage,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodyMedium
+            )
+            currentUserId == null -> Text(
+                text = "Sign in to save cars and parts",
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+    }
+}
+
+@Composable
+private fun CategoryFilterSection(
+    selectedCategory: PartCategory?,
+    onCategorySelected: (PartCategory?) -> Unit
+) {
+    Column {
+        Text(
+            text = "Filter by Category",
+            fontSize = 16.sp,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            FilterChip(
+                selected = selectedCategory == null,
+                onClick = { onCategorySelected(null) },
+                label = { Text("All") }
+            )
+            FilterChip(
+                selected = selectedCategory == PartCategory.ENGINE,
+                onClick = {
+                    onCategorySelected(
+                        if (selectedCategory == PartCategory.ENGINE) null
+                        else PartCategory.ENGINE
+                    )
+                },
+                label = { Text("Engine") }
+            )
+            FilterChip(
+                selected = selectedCategory == PartCategory.BRAKES,
+                onClick = {
+                    onCategorySelected(
+                        if (selectedCategory == PartCategory.BRAKES) null
+                        else PartCategory.BRAKES
+                    )
+                },
+                label = { Text("Brakes") }
+            )
+        }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            FilterChip(
+                selected = selectedCategory == PartCategory.WHEELS,
+                onClick = {
+                    onCategorySelected(
+                        if (selectedCategory == PartCategory.WHEELS) null
+                        else PartCategory.WHEELS
+                    )
+                },
+                label = { Text("Wheels") }
+            )
+            FilterChip(
+                selected = selectedCategory == PartCategory.TRANSMISSION,
+                onClick = {
+                    onCategorySelected(
+                        if (selectedCategory == PartCategory.TRANSMISSION) null
+                        else PartCategory.TRANSMISSION
+                    )
+                },
+                label = { Text("Trans") }
+            )
+        }
+    }
+}
+
+@Composable
+private fun NoPartsAvailableCard() {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(
+                Icons.Default.Info,
+                contentDescription = null,
+                modifier = Modifier.size(48.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = "No Parts Information Available",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = "Parts data for this vehicle is currently being added to our catalog. Please check back later.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                textAlign = TextAlign.Center
+            )
+        }
+    }
+}
+
+@Composable
+private fun NoPartsInCategoryCard() {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(32.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "No parts found in this category",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = 16.sp
+            )
         }
     }
 }
@@ -284,7 +427,7 @@ fun InfoRow(label: String, value: String) {
 }
 
 @Composable
-fun PartCard(part: com.example.mobileformtest.model.CarPart) {
+fun PartCard(part: CarPart) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
@@ -317,7 +460,6 @@ fun PartCard(part: com.example.mobileformtest.model.CarPart) {
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Category Badge
                     Surface(
                         color = MaterialTheme.colorScheme.primaryContainer,
                         shape = RoundedCornerShape(12.dp)
@@ -330,7 +472,6 @@ fun PartCard(part: com.example.mobileformtest.model.CarPart) {
                         )
                     }
 
-                    // Stock Status
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                         verticalAlignment = Alignment.CenterVertically
@@ -363,7 +504,6 @@ fun PartCard(part: com.example.mobileformtest.model.CarPart) {
                 }
             }
 
-            // Price
             Text(
                 text = "$${String.format("%.2f", part.price)}",
                 fontSize = 18.sp,
