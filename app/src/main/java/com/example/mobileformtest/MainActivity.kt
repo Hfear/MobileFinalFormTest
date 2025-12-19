@@ -12,8 +12,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.launch
 import com.example.mobileformtest.auth.FirebaseAuthManager
+import com.example.mobileformtest.data.SavedCarsRepository
+import com.example.mobileformtest.data.UserProfileRepository
 import com.example.mobileformtest.model.Car
-import com.example.mobileformtest.ui.VinViewModel
+import com.example.mobileformtest.viewmodel.VinViewModel
 import com.example.mobileformtest.ui.screens.*
 import com.example.mobileformtest.ui.theme.MobileFormTestTheme
 
@@ -47,13 +49,14 @@ enum class Screen {
 fun CarPartsApp(authManager: FirebaseAuthManager) {
     val context = LocalContext.current
     val vinViewModel: VinViewModel = remember { VinViewModel(context) }
+    val savedCarsRepository = remember { SavedCarsRepository() }
+    val profileRepository = remember { UserProfileRepository() }
 
     var currentScreen by remember { mutableStateOf(Screen.HOME) }
     var selectedCar by remember { mutableStateOf<Car?>(null) }
     val currentUser by authManager.authState.collectAsState()
     val scope = rememberCoroutineScope()
 
-    // Load vehicles when user signs in
     LaunchedEffect(currentUser?.uid) {
         currentUser?.uid?.let { userId ->
             vinViewModel.loadVehiclesFromFirebase(userId)
@@ -151,7 +154,17 @@ fun CarPartsApp(authManager: FirebaseAuthManager) {
                             currentScreen = Screen.SEARCH
                             selectedCar = null
                         },
-                        currentUserId = currentUser?.uid,
+                        onSaveCarClick = { carToSave ->
+                            val userId = currentUser?.uid
+                                ?: return@CarDetailScreen Result.failure(Exception("Not signed in"))
+                            return@CarDetailScreen try {
+                                savedCarsRepository.saveCar(userId, carToSave)
+                                vinViewModel.loadVehiclesFromFirebase(userId)
+                                Result.success(Unit)
+                            } catch (e: Exception) {
+                                Result.failure(e)
+                            }
+                        },
                         onAddMissingInfo = {
                             currentScreen = Screen.MANUAL_ENTRY
                         }
@@ -167,7 +180,10 @@ fun CarPartsApp(authManager: FirebaseAuthManager) {
                 Screen.SIGN_UP -> SignUpScreen(
                     authManager = authManager,
                     onBack = { currentScreen = Screen.SIGN_IN },
-                    onSignedUp = { currentScreen = Screen.PROFILE }
+                    onSignedUp = { currentScreen = Screen.PROFILE },
+                    onInitializeProfile = { uid, email ->
+                        profileRepository.initializeUserStructure(uid, email)
+                    }
                 )
                 Screen.FORGOT_PASSWORD -> ForgotPasswordScreen(
                     authManager = authManager,
@@ -175,13 +191,13 @@ fun CarPartsApp(authManager: FirebaseAuthManager) {
                 )
                 Screen.MANUAL_ENTRY -> ManualCarEntryScreen(
                     onBackClick = { currentScreen = Screen.PROFILE },
-                    onSaveClick = { updates ->
+                    onSaveClick = { updates: Map<String, String> ->
                         selectedCar?.let { car ->
                             val vehicle = vinViewModel.savedVehicles.find {
-                                it.vin.hashCode() == car.id
+                                it.vin.toIntOrNull() == car.id || it.vin.hashCode() == car.id
                             }
-                            vehicle?.let {
-                                vinViewModel.submitMissingInfo(it, updates, currentUser?.uid)
+                            vehicle?.let { v ->
+                                vinViewModel.submitMissingInfo(v, updates, currentUser?.uid)
                             }
                         }
                         currentScreen = Screen.PROFILE

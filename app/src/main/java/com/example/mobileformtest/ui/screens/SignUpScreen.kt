@@ -31,16 +31,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.example.mobileformtest.auth.FirebaseAuthManager
-import com.example.mobileformtest.data.UserProfileRepository
 
 @Composable
 fun SignUpScreen(
     authManager: FirebaseAuthManager,
     onBack: () -> Unit,
-    onSignedUp: () -> Unit
+    onSignedUp: () -> Unit,
+    onInitializeProfile: (String, String) -> Unit
 ) {
     val errorColor = MaterialTheme.colorScheme.error
-    val profileRepository = remember { UserProfileRepository() }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
@@ -125,29 +124,16 @@ fun SignUpScreen(
                         authManager
                             .registerWithEmail(trimmedEmail, password)
                             .addOnCompleteListener { task ->
+                                isLoading = false
                                 if (task.isSuccessful) {
                                     val user = task.result?.user
                                     if (user != null) {
-                                        profileRepository
-                                            .initializeUserStructure(
-                                                uid = user.uid,
-                                                email = user.email ?: trimmedEmail
-                                            )
-                                            .addOnCompleteListener { initTask ->
-                                                isLoading = false
-                                                if (initTask.isSuccessful) {
-                                                    onSignedUp()
-                                                } else {
-                                                    errorMessage = initTask.exception?.localizedMessage
-                                                        ?: "Unable to finish account setup"
-                                                }
-                                            }
+                                        onInitializeProfile(user.uid, user.email ?: trimmedEmail)
+                                        onSignedUp()
                                     } else {
-                                        isLoading = false
                                         errorMessage = "Unable to finish account setup"
                                     }
                                 } else {
-                                    isLoading = false
                                     errorMessage = task.exception?.localizedMessage
                                         ?: "Unable to create account"
                                 }
