@@ -3,21 +3,26 @@ package com.example.mobileformtest
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import kotlinx.coroutines.launch
 import com.example.mobileformtest.auth.FirebaseAuthManager
 import com.example.mobileformtest.data.SavedCarsRepository
 import com.example.mobileformtest.data.UserProfileRepository
 import com.example.mobileformtest.model.Car
-import com.example.mobileformtest.viewmodel.VinViewModel
 import com.example.mobileformtest.ui.screens.*
 import com.example.mobileformtest.ui.theme.MobileFormTestTheme
+import com.example.mobileformtest.viewmodel.VinViewModel
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
@@ -60,6 +65,7 @@ fun CarPartsApp(authManager: FirebaseAuthManager) {
     LaunchedEffect(currentUser?.uid) {
         currentUser?.uid?.let { userId ->
             vinViewModel.loadVehiclesFromFirebase(userId)
+            vinViewModel.loadSavedPartsFromFirebase(userId)
         }
     }
 
@@ -111,23 +117,23 @@ fun CarPartsApp(authManager: FirebaseAuthManager) {
                     onBrowseAsGuest = { currentScreen = Screen.SEARCH },
                     onSignInRequest = { currentScreen = Screen.SIGN_IN }
                 )
+
                 Screen.SEARCH -> HomeScreen(
                     onCarClick = { car ->
                         selectedCar = car
                         currentScreen = Screen.DETAIL
                     }
                 )
+
                 Screen.VIN_DECODER -> VinDecoderScreen(
-                    onVehicleSaved = { vehicle ->
-                        currentScreen = Screen.PROFILE
-                    },
+                    onVehicleSaved = { currentScreen = Screen.PROFILE },
                     viewModel = vinViewModel,
                     currentUserId = currentUser?.uid,
-                    onManualEntryClick = {
-                        currentScreen = Screen.MANUAL_ENTRY
-                    }
+                    onManualEntryClick = { currentScreen = Screen.MANUAL_ENTRY }
                 )
+
                 Screen.ABOUT -> AboutScreen()
+
                 Screen.PROFILE -> ProfileScreen(
                     userEmail = currentUser?.email,
                     onSignOut = {
@@ -143,10 +149,9 @@ fun CarPartsApp(authManager: FirebaseAuthManager) {
                             currentScreen = Screen.DETAIL
                         }
                     },
-                    onAddUnknownCar = {
-                        currentScreen = Screen.MANUAL_ENTRY
-                    }
+                    onAddUnknownCar = { currentScreen = Screen.MANUAL_ENTRY }
                 )
+
                 Screen.DETAIL -> selectedCar?.let { car ->
                     CarDetailScreen(
                         car = car,
@@ -165,11 +170,13 @@ fun CarPartsApp(authManager: FirebaseAuthManager) {
                                 Result.failure(e)
                             }
                         },
-                        onAddMissingInfo = {
-                            currentScreen = Screen.MANUAL_ENTRY
-                        }
+                        onSavePartClick = { part ->
+                            vinViewModel.savePartToProfile(car, part, currentUser?.uid)
+                        },
+                        onAddMissingInfo = { currentScreen = Screen.MANUAL_ENTRY }
                     )
                 }
+
                 Screen.SIGN_IN -> SignInScreen(
                     authManager = authManager,
                     onBack = { currentScreen = Screen.PROFILE },
@@ -177,6 +184,7 @@ fun CarPartsApp(authManager: FirebaseAuthManager) {
                     onForgotPassword = { currentScreen = Screen.FORGOT_PASSWORD },
                     onNavigateToSignUp = { currentScreen = Screen.SIGN_UP }
                 )
+
                 Screen.SIGN_UP -> SignUpScreen(
                     authManager = authManager,
                     onBack = { currentScreen = Screen.SIGN_IN },
@@ -185,16 +193,18 @@ fun CarPartsApp(authManager: FirebaseAuthManager) {
                         profileRepository.initializeUserStructure(uid, email)
                     }
                 )
+
                 Screen.FORGOT_PASSWORD -> ForgotPasswordScreen(
                     authManager = authManager,
                     onBack = { currentScreen = Screen.SIGN_IN }
                 )
+
                 Screen.MANUAL_ENTRY -> ManualCarEntryScreen(
                     onBackClick = { currentScreen = Screen.PROFILE },
                     onSaveClick = { updates: Map<String, String> ->
                         selectedCar?.let { car ->
                             val vehicle = vinViewModel.savedVehicles.find {
-                                it.vin.toIntOrNull() == car.id || it.vin.hashCode() == car.id
+                                it.vin.hashCode() == car.id
                             }
                             vehicle?.let { v ->
                                 vinViewModel.submitMissingInfo(v, updates, currentUser?.uid)
