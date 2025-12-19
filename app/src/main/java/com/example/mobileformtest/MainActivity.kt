@@ -40,7 +40,7 @@ class MainActivity : ComponentActivity() {
 }
 
 enum class Screen {
-    HOME, SEARCH, ABOUT, PROFILE, DETAIL,
+    HOME, SEARCH, DIAGNOSE, PROFILE, DETAIL,
     SIGN_IN, SIGN_UP, FORGOT_PASSWORD,
     VIN_DECODER, MANUAL_ENTRY
 }
@@ -90,10 +90,10 @@ fun CarPartsApp(authManager: FirebaseAuthManager) {
                         label = { Text("VIN") }
                     )
                     NavigationBarItem(
-                        selected = currentScreen == Screen.ABOUT,
-                        onClick = { currentScreen = Screen.ABOUT },
-                        icon = { Icon(Icons.Default.Info, "About") },
-                        label = { Text("About") }
+                        selected = currentScreen == Screen.DIAGNOSE,
+                        onClick = { currentScreen = Screen.DIAGNOSE },
+                        icon = { Icon(Icons.Default.Info, "Diagnose") },
+                        label = { Text("Diagnose") }
                     )
                     NavigationBarItem(
                         selected = currentScreen == Screen.PROFILE,
@@ -127,7 +127,7 @@ fun CarPartsApp(authManager: FirebaseAuthManager) {
                         currentScreen = Screen.MANUAL_ENTRY
                     }
                 )
-                Screen.ABOUT -> AboutScreen()
+                Screen.DIAGNOSE -> DiagnoseScreen()
                 Screen.PROFILE -> ProfileScreen(
                     userEmail = currentUser?.email,
                     onSignOut = {

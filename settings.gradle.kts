@@ -16,6 +16,11 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        maven("https://ai.google.dev/maven") {
+            content {
+                includeGroup("com.google.ai.client.generativeai")
+            }
+        }
     }
 }
 
