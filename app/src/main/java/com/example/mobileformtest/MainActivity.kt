@@ -155,14 +155,14 @@ fun CarPartsApp(authManager: FirebaseAuthManager) {
                             selectedCar = null
                         },
                         onSaveCarClick = { carToSave ->
-                            currentUser?.uid?.let { userId ->
-                                scope.launch {
-                                    try {
-                                        savedCarsRepository.saveCar(userId, carToSave)
-                                    } catch (e: Exception) {
-                                        // Handle error
-                                    }
-                                }
+                            val userId = currentUser?.uid
+                                ?: return@CarDetailScreen Result.failure(Exception("Not signed in"))
+                            return@CarDetailScreen try {
+                                savedCarsRepository.saveCar(userId, carToSave)
+                                vinViewModel.loadVehiclesFromFirebase(userId)
+                                Result.success(Unit)
+                            } catch (e: Exception) {
+                                Result.failure(e)
                             }
                         },
                         onAddMissingInfo = {
@@ -194,7 +194,7 @@ fun CarPartsApp(authManager: FirebaseAuthManager) {
                     onSaveClick = { updates: Map<String, String> ->
                         selectedCar?.let { car ->
                             val vehicle = vinViewModel.savedVehicles.find {
-                                it.vin.hashCode() == car.id
+                                it.vin.toIntOrNull() == car.id || it.vin.hashCode() == car.id
                             }
                             vehicle?.let { v ->
                                 vinViewModel.submitMissingInfo(v, updates, currentUser?.uid)

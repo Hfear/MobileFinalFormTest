@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.mobileformtest.model.Car
 import com.example.mobileformtest.model.CarPart
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -25,13 +26,15 @@ fun CarDetailScreen(
     car: Car,
     onBackClick: () -> Unit = {},
     modifier: Modifier = Modifier,
-    onSaveCarClick: (Car) -> Unit = {},
+    onSaveCarClick: suspend (Car) -> Result<Unit> = { Result.success(Unit) },
     onAddMissingInfo: () -> Unit = {}
 ) {
-    var successMessage by remember { mutableStateOf<String?>(null) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    var saving by remember { mutableStateOf(false) }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
@@ -89,24 +92,32 @@ fun CarDetailScreen(
                     )
 
                     Button(
-                        onClick = { onSaveCarClick(car) },
+                        onClick = {
+                            scope.launch {
+                                saving = true
+                                val result = onSaveCarClick(car)
+                                saving = false
+                                snackbarHostState.showSnackbar(
+                                    message = result.fold(
+                                        onSuccess = { "Saved!" },
+                                        onFailure = { "Save failed" }
+                                    )
+                                )
+                            }
+                        },
+                        enabled = !saving,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Save Car")
-                    }
-
-                    successMessage?.let {
-                        Text(
-                            text = it,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-
-                    errorMessage?.let {
-                        Text(
-                            text = it,
-                            color = MaterialTheme.colorScheme.error
-                        )
+                        if (saving) {
+                            CircularProgressIndicator(
+                                strokeWidth = 2.dp,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text("Saving...")
+                        } else {
+                            Text("Save Car")
+                        }
                     }
                 }
             }
