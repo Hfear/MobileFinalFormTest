@@ -256,11 +256,12 @@ fun refreshData() {
 ## ▶️ Setup / Run
 
 1. Open the project in Android Studio
-2. Add Firebase to the project and include google-services.json
+2. Add Firebase to the project and include google-services.json in /app directory
 3. Enable:
    - Firebase Authentication (Email/Password)
    - Cloud Firestore
-4. Sync Gradle and run on an emulator or device
+4. Enable gemini-pro subscription and add into local.kts: GEMINI_API_KEY=your_api_key
+5. Sync Gradle and run on an emulator or device
 
 --------------------------------------------------------------------------------
 
