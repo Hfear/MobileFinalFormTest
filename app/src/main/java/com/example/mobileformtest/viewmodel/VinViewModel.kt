@@ -9,9 +9,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.mobileformtest.data.CarRepository
 import com.example.mobileformtest.data.SavedCarsRepository
+import com.example.mobileformtest.data.SavedPartsRepository
 import com.example.mobileformtest.data.VinRepository
 import com.example.mobileformtest.model.Car
+import com.example.mobileformtest.model.CarPart
 import com.example.mobileformtest.model.DecodedVehicle
+import com.example.mobileformtest.model.SavedPart
 import kotlinx.coroutines.launch
 
 sealed interface VinUiState {
@@ -29,9 +32,13 @@ class VinViewModel(private val context: Context) : ViewModel() {
     private val _savedVehicles = mutableListOf<DecodedVehicle>()
     val savedVehicles: List<DecodedVehicle> get() = _savedVehicles
 
+    var savedParts by mutableStateOf<List<SavedPart>>(emptyList())
+        private set
+
     private val vinRepository = VinRepository()
     private val carRepository = CarRepository(context)
     private val savedCarsRepository = SavedCarsRepository()
+    private val savedPartsRepository = SavedPartsRepository()
 
     /**
      * Decode VIN using NHTSA API and add to catalog.
@@ -100,6 +107,44 @@ class VinViewModel(private val context: Context) : ViewModel() {
     }
 
     /**
+     * Load user's saved parts from Firebase.
+     */
+    fun loadSavedPartsFromFirebase(userId: String) {
+        viewModelScope.launch {
+            try {
+                savedParts = savedPartsRepository.loadSavedParts(userId)
+            } catch (e: Exception) {
+                Log.e("VinViewModel", "Error loading parts: ${e.message}", e)
+                savedParts = emptyList()
+            }
+        }
+    }
+
+    /**
+     * Save a part to user's savedParts list.
+     */
+    suspend fun savePartToProfileSuspend(car: Car, part: CarPart, userId: String) {
+        savedPartsRepository.savePart(userId, car, part)
+        savedParts = savedPartsRepository.loadSavedParts(userId)
+    }
+
+    /**
+     * Remove a saved part from user's savedParts list.
+     */
+    fun removeSavedPart(partDocId: String, userId: String?) {
+        if (userId == null) return
+
+        viewModelScope.launch {
+            try {
+                savedPartsRepository.removePart(userId, partDocId)
+                savedParts = savedParts.filterNot { it.docId == partDocId }
+            } catch (e: Exception) {
+                Log.e("VinViewModel", "Error removing part: ${e.message}", e)
+            }
+        }
+    }
+
+    /**
      * Submit user contribution for missing vehicle info.
      */
     fun submitMissingInfo(
@@ -120,10 +165,11 @@ class VinViewModel(private val context: Context) : ViewModel() {
     }
 
     /**
-     * Clear saved vehicles list (on sign out).
+     * Clear saved lists (on sign out).
      */
     fun clearSavedVehicles() {
         _savedVehicles.clear()
+        savedParts = emptyList()
     }
 
     /**
