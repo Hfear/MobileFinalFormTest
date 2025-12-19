@@ -28,12 +28,12 @@ fun CarDetailScreen(
     onBackClick: () -> Unit = {},
     modifier: Modifier = Modifier,
     onSaveCarClick: suspend (Car) -> Result<Unit> = { Result.success(Unit) },
-    onSavePartClick: (CarPart) -> Unit = {},
+    onSavePartClick: suspend (CarPart) -> Result<Unit> = { Result.success(Unit) },
     onAddMissingInfo: () -> Unit = {}
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-    var saving by remember { mutableStateOf(false) }
+    var savingCar by remember { mutableStateOf(false) }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -96,9 +96,9 @@ fun CarDetailScreen(
                     Button(
                         onClick = {
                             scope.launch {
-                                saving = true
+                                savingCar = true
                                 val result = onSaveCarClick(car)
-                                saving = false
+                                savingCar = false
                                 snackbarHostState.showSnackbar(
                                     message = result.fold(
                                         onSuccess = { "Saved!" },
@@ -107,10 +107,10 @@ fun CarDetailScreen(
                                 )
                             }
                         },
-                        enabled = !saving,
+                        enabled = !savingCar,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        if (saving) {
+                        if (savingCar) {
                             CircularProgressIndicator(
                                 strokeWidth = 2.dp,
                                 modifier = Modifier.size(18.dp)
@@ -153,7 +153,17 @@ fun CarDetailScreen(
                     items(car.parts) { part ->
                         PartCard(
                             part = part,
-                            onSaveClick = { onSavePartClick(part) }
+                            onSaveClick = {
+                                scope.launch {
+                                    val result = onSavePartClick(part)
+                                    snackbarHostState.showSnackbar(
+                                        message = result.fold(
+                                            onSuccess = { "Part saved" },
+                                            onFailure = { "Save failed" }
+                                        )
+                                    )
+                                }
+                            }
                         )
                     }
                 }

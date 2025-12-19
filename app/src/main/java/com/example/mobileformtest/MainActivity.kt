@@ -144,12 +144,15 @@ fun CarPartsApp(authManager: FirebaseAuthManager) {
                     savedVehicles = vinViewModel.savedVehicles,
                     onVehicleClick = { vehicle ->
                         scope.launch {
-                            val car = vinViewModel.getCarFromVehicle(vehicle)
-                            selectedCar = car
+                            selectedCar = vinViewModel.getCarFromVehicle(vehicle)
                             currentScreen = Screen.DETAIL
                         }
                     },
-                    onAddUnknownCar = { currentScreen = Screen.MANUAL_ENTRY }
+                    onAddUnknownCar = { currentScreen = Screen.MANUAL_ENTRY },
+                    savedParts = vinViewModel.savedParts,
+                    onRemoveSavedPart = { part ->
+                        vinViewModel.removeSavedPart(part.docId, currentUser?.uid)
+                    }
                 )
 
                 Screen.DETAIL -> selectedCar?.let { car ->
@@ -171,7 +174,14 @@ fun CarPartsApp(authManager: FirebaseAuthManager) {
                             }
                         },
                         onSavePartClick = { part ->
-                            vinViewModel.savePartToProfile(car, part, currentUser?.uid)
+                            val userId = currentUser?.uid
+                                ?: return@CarDetailScreen Result.failure(Exception("Not signed in"))
+                            return@CarDetailScreen try {
+                                vinViewModel.savePartToProfileSuspend(car, part, userId)
+                                Result.success(Unit)
+                            } catch (e: Exception) {
+                                Result.failure(e)
+                            }
                         },
                         onAddMissingInfo = { currentScreen = Screen.MANUAL_ENTRY }
                     )

@@ -32,8 +32,8 @@ class VinViewModel(private val context: Context) : ViewModel() {
     private val _savedVehicles = mutableListOf<DecodedVehicle>()
     val savedVehicles: List<DecodedVehicle> get() = _savedVehicles
 
-    private val _savedParts = mutableListOf<SavedPart>()
-    val savedParts: List<SavedPart> get() = _savedParts
+    var savedParts by mutableStateOf<List<SavedPart>>(emptyList())
+        private set
 
     private val vinRepository = VinRepository()
     private val carRepository = CarRepository(context)
@@ -107,22 +107,25 @@ class VinViewModel(private val context: Context) : ViewModel() {
     }
 
     /**
-     * Save a part to user's savedParts list.
+     * Load user's saved parts from Firebase.
      */
-    fun savePartToProfile(car: Car, part: CarPart, userId: String?) {
-        if (userId == null) {
-            Log.w("VinViewModel", "Not signed in; part not saved.")
-            return
-        }
-
+    fun loadSavedPartsFromFirebase(userId: String) {
         viewModelScope.launch {
             try {
-                savedPartsRepository.savePart(userId, car, part)
-                loadSavedPartsFromFirebase(userId)
+                savedParts = savedPartsRepository.loadSavedParts(userId)
             } catch (e: Exception) {
-                Log.e("VinViewModel", "Error saving part: ${e.message}", e)
+                Log.e("VinViewModel", "Error loading parts: ${e.message}", e)
+                savedParts = emptyList()
             }
         }
+    }
+
+    /**
+     * Save a part to user's savedParts list.
+     */
+    suspend fun savePartToProfileSuspend(car: Car, part: CarPart, userId: String) {
+        savedPartsRepository.savePart(userId, car, part)
+        savedParts = savedPartsRepository.loadSavedParts(userId)
     }
 
     /**
@@ -134,24 +137,9 @@ class VinViewModel(private val context: Context) : ViewModel() {
         viewModelScope.launch {
             try {
                 savedPartsRepository.removePart(userId, partDocId)
-                loadSavedPartsFromFirebase(userId)
+                savedParts = savedParts.filterNot { it.docId == partDocId }
             } catch (e: Exception) {
                 Log.e("VinViewModel", "Error removing part: ${e.message}", e)
-            }
-        }
-    }
-
-    /**
-     * Load user's saved parts from Firebase.
-     */
-    fun loadSavedPartsFromFirebase(userId: String) {
-        viewModelScope.launch {
-            try {
-                val parts = savedPartsRepository.loadSavedParts(userId)
-                _savedParts.clear()
-                _savedParts.addAll(parts)
-            } catch (e: Exception) {
-                Log.e("VinViewModel", "Error loading parts: ${e.message}", e)
             }
         }
     }
@@ -181,7 +169,7 @@ class VinViewModel(private val context: Context) : ViewModel() {
      */
     fun clearSavedVehicles() {
         _savedVehicles.clear()
-        _savedParts.clear()
+        savedParts = emptyList()
     }
 
     /**
