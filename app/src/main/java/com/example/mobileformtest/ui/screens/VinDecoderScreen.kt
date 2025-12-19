@@ -13,8 +13,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.mobileformtest.model.DecodedVehicle
-import com.example.mobileformtest.ui.VinUiState
-import com.example.mobileformtest.ui.VinViewModel
+import com.example.mobileformtest.viewmodel.VinUiState
+import com.example.mobileformtest.viewmodel.VinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

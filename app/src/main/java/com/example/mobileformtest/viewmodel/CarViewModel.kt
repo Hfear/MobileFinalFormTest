@@ -1,4 +1,4 @@
-package com.example.mobileformtest.ui
+package com.example.mobileformtest.viewmodel
 
 import android.app.Application
 import androidx.compose.runtime.getValue
