@@ -7,21 +7,19 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.mobileformtest.model.DecodedVehicle
-import androidx.compose.foundation.layout.Box
-import androidx.compose.material3.TopAppBarDefaults
-import okio.blackholeSink
+import com.example.mobileformtest.model.SavedPart
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -31,29 +29,15 @@ fun ProfileScreen(
     onSignInRequest: () -> Unit,
     savedVehicles: List<DecodedVehicle> = emptyList(),
     onVehicleClick: (DecodedVehicle) -> Unit = {},
-    onAddUnknownCar: () -> Unit = {}
+    onAddUnknownCar: () -> Unit = {},
+    savedParts: List<SavedPart> = emptyList(),
+    onRemoveSavedPart: (SavedPart) -> Unit = {}
 ) {
     Scaffold(
         topBar = {
-            Box {
-                // Reuse the same slanted header as Home/CarDetail
-                SlantedHeaderBackground(modifier = Modifier.fillMaxWidth())
-
-                TopAppBar(
-                    title = {
-                        Text(
-                            text = "Profile",
-                            fontWeight = FontWeight.Bold,
-                            color=Color.White
-                        )
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Color.Transparent,
-                        scrolledContainerColor = Color.Transparent,
-                        titleContentColor = MaterialTheme.colorScheme.onPrimary
-                    )
-                )
-            }
+            TopAppBar(
+                title = { Text("Profile", fontWeight = FontWeight.Bold) }
+            )
         }
     ) { paddingValues ->
         Column(
@@ -64,7 +48,6 @@ fun ProfileScreen(
                 .padding(paddingValues)
                 .padding(16.dp)
         ) {
-            // User info card
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -107,7 +90,6 @@ fun ProfileScreen(
                 }
             }
 
-            // Your cars section
             Text(
                 text = "Your Car(s)",
                 fontSize = 18.sp,
@@ -119,10 +101,8 @@ fun ProfileScreen(
                 modifier = Modifier.padding(bottom = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // Add unknown car card
                 AddUnknownCarCard(onClick = onAddUnknownCar)
 
-                // Saved vehicles
                 savedVehicles.forEach { vehicle ->
                     SavedVehicleCard(
                         vehicle = vehicle,
@@ -130,7 +110,6 @@ fun ProfileScreen(
                     )
                 }
 
-                // Empty state
                 if (savedVehicles.isEmpty()) {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
@@ -152,64 +131,44 @@ fun ProfileScreen(
                         }
                     }
                 }
+            }
 
-                // ----------------------------
-                // Saved Parts Section
-                // ----------------------------
-                Text(
-                    text = "Saved Parts",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
+            Text(
+                text = "Saved Parts",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
 
+            if (savedParts.isEmpty()) {
                 Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(150.dp)
-                        .padding(bottom = 24.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant  // brighter edge
-                    ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
                     Box(
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "Saved Parts Content",
-                            fontSize = 16.sp
+                            text = "No saved parts yet.\nTap the star on a part to save it.",
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                            textAlign = TextAlign.Center
                         )
                     }
                 }
-
-                // ----------------------------
-                // History Section
-                // ----------------------------
-                Text(
-                    text = "History",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(150.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant
-                    ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+            } else {
+                Column(
+                    modifier = Modifier.padding(bottom = 24.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "History Content",
-                            fontSize = 16.sp
+                    savedParts.forEach { part ->
+                        SavedPartCard(
+                            part = part,
+                            onRemoveClick = { onRemoveSavedPart(part) }
                         )
                     }
                 }
@@ -218,8 +177,6 @@ fun ProfileScreen(
     }
 }
 
-
-// --- REUSABLE CAR IMAGE CARD ---
 @Composable
 fun AddUnknownCarCard(onClick: () -> Unit) {
     Card(
@@ -338,6 +295,75 @@ fun SavedVehicleCard(
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(top = 4.dp)
             )
+        }
+    }
+}
+
+@Composable
+fun SavedPartCard(
+    part: SavedPart,
+    onRemoveClick: () -> Unit = {}
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = part.name,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp
+                    )
+                    Text(
+                        text = "${part.carYear} ${part.carMake} ${part.carModel}",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    )
+                    if (part.category.isNotBlank()) {
+                        Text(
+                            text = part.category,
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                        )
+                    }
+                }
+
+                IconButton(onClick = onRemoveClick) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Remove"
+                    )
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "$${part.price}",
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+
+                Text(
+                    text = if (part.inStock) "In Stock" else "Out of Stock",
+                    fontSize = 12.sp,
+                    color = if (part.inStock) Color(0xFF4CAF50) else Color(0xFFF44336),
+                    fontWeight = FontWeight.Medium
+                )
+            }
         }
     }
 }

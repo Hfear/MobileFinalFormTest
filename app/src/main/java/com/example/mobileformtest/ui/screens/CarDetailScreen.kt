@@ -5,8 +5,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -27,11 +28,12 @@ fun CarDetailScreen(
     onBackClick: () -> Unit = {},
     modifier: Modifier = Modifier,
     onSaveCarClick: suspend (Car) -> Result<Unit> = { Result.success(Unit) },
+    onSavePartClick: suspend (CarPart) -> Result<Unit> = { Result.success(Unit) },
     onAddMissingInfo: () -> Unit = {}
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-    var saving by remember { mutableStateOf(false) }
+    var savingCar by remember { mutableStateOf(false) }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -94,9 +96,9 @@ fun CarDetailScreen(
                     Button(
                         onClick = {
                             scope.launch {
-                                saving = true
+                                savingCar = true
                                 val result = onSaveCarClick(car)
-                                saving = false
+                                savingCar = false
                                 snackbarHostState.showSnackbar(
                                     message = result.fold(
                                         onSuccess = { "Saved!" },
@@ -105,10 +107,10 @@ fun CarDetailScreen(
                                 )
                             }
                         },
-                        enabled = !saving,
+                        enabled = !savingCar,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        if (saving) {
+                        if (savingCar) {
                             CircularProgressIndicator(
                                 strokeWidth = 2.dp,
                                 modifier = Modifier.size(18.dp)
@@ -149,7 +151,20 @@ fun CarDetailScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(car.parts) { part ->
-                        PartCard(part)
+                        PartCard(
+                            part = part,
+                            onSaveClick = {
+                                scope.launch {
+                                    val result = onSavePartClick(part)
+                                    snackbarHostState.showSnackbar(
+                                        message = result.fold(
+                                            onSuccess = { "Part saved" },
+                                            onFailure = { "Save failed" }
+                                        )
+                                    )
+                                }
+                            }
+                        )
                     }
                 }
             }
@@ -158,7 +173,10 @@ fun CarDetailScreen(
 }
 
 @Composable
-fun PartCard(part: CarPart) {
+fun PartCard(
+    part: CarPart,
+    onSaveClick: () -> Unit = {}
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
@@ -176,7 +194,7 @@ fun PartCard(part: CarPart) {
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
                     text = "$${part.price}",
@@ -184,11 +202,20 @@ fun PartCard(part: CarPart) {
                     color = MaterialTheme.colorScheme.primary
                 )
 
+                Spacer(modifier = Modifier.weight(1f))
+
                 Text(
                     text = if (part.inStock) "In Stock" else "Out of Stock",
                     color = if (part.inStock) Color(0xFF4CAF50) else Color(0xFFF44336),
                     fontWeight = FontWeight.Medium
                 )
+
+                IconButton(onClick = onSaveClick) {
+                    Icon(
+                        imageVector = Icons.Default.Star,
+                        contentDescription = "Save Part"
+                    )
+                }
             }
         }
     }

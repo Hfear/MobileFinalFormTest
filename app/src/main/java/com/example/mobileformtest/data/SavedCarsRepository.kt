@@ -18,6 +18,7 @@ class SavedCarsRepository(
     companion object {
         private const val USERS_COLLECTION = "users"
         private const val SAVED_CARS_COLLECTION = "savedCars"
+        private const val CARS_COLLECTION = "cars"
     }
 
     /**
@@ -38,6 +39,8 @@ class SavedCarsRepository(
             "imageUrl" to car.imageUrl,
             "vehicleType" to "",
             "manufacturer" to "",
+            "plantCountry" to "",
+            "engineInfo" to "",
             "savedAt" to FieldValue.serverTimestamp()
         )
 
@@ -46,6 +49,14 @@ class SavedCarsRepository(
             .collection(SAVED_CARS_COLLECTION)
             .document(docId)
             .set(data, SetOptions.merge())
+            .await()
+
+        firestore.collection(CARS_COLLECTION)
+            .document(docId)
+            .set(
+                data + mapOf("updatedAt" to FieldValue.serverTimestamp()),
+                SetOptions.merge()
+            )
             .await()
     }
 
@@ -74,6 +85,8 @@ class SavedCarsRepository(
             "imageUrl" to imageUrl,
             "vehicleType" to vehicle.vehicleType,
             "manufacturer" to vehicle.manufacturer,
+            "plantCountry" to vehicle.plantCountry,
+            "engineInfo" to vehicle.engineInfo,
             "savedAt" to FieldValue.serverTimestamp()
         )
 
@@ -82,6 +95,14 @@ class SavedCarsRepository(
             .collection(SAVED_CARS_COLLECTION)
             .document(docId)
             .set(data, SetOptions.merge())
+            .await()
+
+        firestore.collection(CARS_COLLECTION)
+            .document(docId)
+            .set(
+                data + mapOf("updatedAt" to FieldValue.serverTimestamp()),
+                SetOptions.merge()
+            )
             .await()
     }
 
@@ -105,8 +126,8 @@ class SavedCarsRepository(
                         year = (doc.getLong("year") ?: 0L).toString(),
                         vehicleType = doc.getString("vehicleType") ?: "",
                         manufacturer = doc.getString("manufacturer") ?: "",
-                        plantCountry = "",
-                        engineInfo = ""
+                        plantCountry = doc.getString("plantCountry") ?: "",
+                        engineInfo = doc.getString("engineInfo") ?: ""
                     )
                 } catch (e: Exception) {
                     Log.e("SavedCarsRepository", "Error parsing vehicle: ${e.message}", e)
