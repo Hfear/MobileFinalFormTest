@@ -8,17 +8,22 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.mobileformtest.model.DecodedVehicle
+import androidx.compose.foundation.layout.Box
+import androidx.compose.material3.TopAppBarDefaults
+import okio.blackholeSink
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
     userEmail: String?,
@@ -28,166 +33,193 @@ fun ProfileScreen(
     onVehicleClick: (DecodedVehicle) -> Unit = {},
     onAddUnknownCar: () -> Unit = {}
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFFF5F5F5))
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp)
-    ) {
-        // Profile title
-        Text(
-            text = "Profile",
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
+    Scaffold(
+        topBar = {
+            Box {
+                // Reuse the same slanted header as Home/CarDetail
+                SlantedHeaderBackground(modifier = Modifier.fillMaxWidth())
 
-        // User info card
-        Card(
+                TopAppBar(
+                    title = {
+                        Text(
+                            text = "Profile",
+                            fontWeight = FontWeight.Bold,
+                            color=Color.White
+                        )
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.Transparent,
+                        scrolledContainerColor = Color.Transparent,
+                        titleContentColor = MaterialTheme.colorScheme.onPrimary
+                    )
+                )
+            }
+        }
+    ) { paddingValues ->
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+                .verticalScroll(rememberScrollState())
+                .padding(paddingValues)
+                .padding(16.dp)
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                if (userEmail != null) {
-                    Text(
-                        text = "Signed in as:",
-                        fontSize = 14.sp,
-                        color = Color.Gray
-                    )
-                    Text(
-                        text = userEmail,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(vertical = 4.dp)
-                    )
-                    Button(
-                        onClick = onSignOut,
-                        modifier = Modifier.padding(top = 8.dp)
-                    ) {
-                        Text("Sign Out")
-                    }
-                } else {
-                    Text(
-                        text = "Not signed in",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Button(
-                        onClick = onSignInRequest,
-                        modifier = Modifier.padding(top = 8.dp)
-                    ) {
-                        Text("Sign In")
+            // User info card
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    if (userEmail != null) {
+                        Text(
+                            text = "Signed in as:",
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                        )
+                        Text(
+                            text = userEmail,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(vertical = 4.dp)
+                        )
+                        Button(
+                            onClick = onSignOut,
+                            modifier = Modifier.padding(top = 8.dp)
+                        ) {
+                            Text("Sign Out")
+                        }
+                    } else {
+                        Text(
+                            text = "Not signed in",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Button(
+                            onClick = onSignInRequest,
+                            modifier = Modifier.padding(top = 8.dp)
+                        ) {
+                            Text("Sign In")
+                        }
                     }
                 }
             }
-        }
 
-        // Your cars section
-        Text(
-            text = "Your Car(s)",
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
+            // Your cars section
+            Text(
+                text = "Your Car(s)",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
 
-        Column(
-            modifier = Modifier.padding(bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            // Add unknown car card
-            AddUnknownCarCard(onClick = onAddUnknownCar)
+            Column(
+                modifier = Modifier.padding(bottom = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Add unknown car card
+                AddUnknownCarCard(onClick = onAddUnknownCar)
 
-            // Saved vehicles
-            savedVehicles.forEach { vehicle ->
-                SavedVehicleCard(
-                    vehicle = vehicle,
-                    onClick = { onVehicleClick(vehicle) }
+                // Saved vehicles
+                savedVehicles.forEach { vehicle ->
+                    SavedVehicleCard(
+                        vehicle = vehicle,
+                        onClick = { onVehicleClick(vehicle) }
+                    )
+                }
+
+                // Empty state
+                if (savedVehicles.isEmpty()) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(32.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "No vehicles saved yet.\nUse VIN Decoder or add manually above.",
+                                fontSize = 14.sp,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
+                }
+
+                // ----------------------------
+                // Saved Parts Section
+                // ----------------------------
+                Text(
+                    text = "Saved Parts",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 8.dp)
                 )
-            }
 
-            // Empty state
-            if (savedVehicles.isEmpty()) {
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(150.dp)
+                        .padding(bottom = 24.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant  // brighter edge
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
                 ) {
                     Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(32.dp),
+                        modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "No vehicles saved yet.\nUse VIN Decoder or add manually above.",
-                            fontSize = 14.sp,
-                            color = Color.Gray,
-                            textAlign = TextAlign.Center
+                            text = "Saved Parts Content",
+                            fontSize = 16.sp
+                        )
+                    }
+                }
+
+                // ----------------------------
+                // History Section
+                // ----------------------------
+                Text(
+                    text = "History",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(150.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+                ) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "History Content",
+                            fontSize = 16.sp
                         )
                     }
                 }
             }
         }
-
-        // Saved parts section
-        Text(
-            text = "Saved Parts",
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
-
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(150.dp)
-                .padding(bottom = 24.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-        ) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "Saved Parts Content",
-                    fontSize = 16.sp
-                )
-            }
-        }
-
-        // History section
-        Text(
-            text = "History",
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
-
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(150.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-        ) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "History Content",
-                    fontSize = 16.sp
-                )
-            }
-        }
     }
 }
 
+
+// --- REUSABLE CAR IMAGE CARD ---
 @Composable
 fun AddUnknownCarCard(onClick: () -> Unit) {
     Card(
@@ -240,7 +272,7 @@ fun SavedVehicleCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
@@ -271,7 +303,7 @@ fun SavedVehicleCard(
             Text(
                 text = "VIN: ${vehicle.vin}",
                 fontSize = 12.sp,
-                color = Color.Gray
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
             )
 
             Row(
